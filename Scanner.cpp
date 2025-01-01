@@ -1,25 +1,15 @@
-// Grab.cpp
 /*
-    Note: Before getting started, Basler recommends reading the "Programmer's Guide" topic
-    in the pylon C++ API documentation delivered with pylon.
-    If you are upgrading to a higher major version of pylon, Basler also
-    strongly recommends reading the "Migrating from Previous Versions" topic in the pylon C++ API documentation.
-
-    This sample illustrates how to grab and process images using the CInstantCamera class.
-    The images are grabbed and processed asynchronously, i.e.,
-    while the application is processing a buffer, the acquisition of the next buffer is done
-    in parallel.
-
-    The CInstantCamera class uses a pool of buffers to retrieve image data
-    from the camera device. Once a buffer is filled and ready,
-    the buffer can be retrieved from the camera object for processing. The buffer
-    and additional image data are collected in a grab result. The grab result is
-    held by a smart pointer after retrieval. The buffer is automatically reused
-    when explicitly released or when the smart pointer object is destroyed.
+*   Scanner.cpp
+*	Film Scanner Master PC Control Software by Kyle Mikolajczyk
+*   kyle@kylem.org
 */
 
-#include <iostream>
-#include <boost/asio.hpp>
+#define ARDUINO_BAUD_RATE 9600
+#define ARDUINO_PORT "COM6"
+#define ARDUINO_MSG_START_DELIM '\r'
+#define ARDUINO_MSG_END_DELIM '\n'
+
+#include "SerialConn.h"
 
 // Include files to use the pylon API.
 #include <pylon/PylonIncludes.h>
@@ -27,13 +17,9 @@
 #    include <pylon/PylonGUI.h>
 #endif
 
+using namespace std;
 // Namespace for using pylon objects.
 using namespace Pylon;
-
-// Namespace for using cout.
-using namespace std;
-
-using namespace boost::asio;
 
 // Number of images to be grabbed.
 static const uint32_t c_countOfImagesToGrab = 100;
@@ -108,25 +94,13 @@ int main( int /*argc*/, char* /*argv*/[] )
     // Releases all pylon resources.
     PylonTerminate();
 
-    // Serial testing
-    try {
-        io_service io;
-        serial_port serial(io, "COM6"); // Replace "COM3" with your Arduino's COM port
-
-        serial.set_option(serial_port_base::baud_rate(9600));
-        serial.set_option(serial_port_base::character_size(8));
-        serial.set_option(serial_port_base::parity(serial_port_base::parity::none));
-        serial.set_option(serial_port_base::stop_bits(serial_port_base::stop_bits::one));
-        serial.set_option(serial_port_base::flow_control(serial_port_base::flow_control::none));
-
-        while (true) {
-            char c;
-            read(serial, buffer(&c, 1));
-            cout << c;
-        }
+	SerialConn arduinoConnection = SerialConn(ARDUINO_BAUD_RATE, ARDUINO_PORT);
+	char* buffer = arduinoConnection.readBetweenDelimiters(ARDUINO_MSG_START_DELIM, ARDUINO_MSG_END_DELIM);
+    if (buffer != nullptr) {
+        cout << buffer << endl;
     }
-    catch (boost::system::system_error& e) {
-        cerr << "Error: " << e.what() << endl;
+    else {
+		cout << "Error reading from Arduino." << endl;
     }
 
     return exitCode;

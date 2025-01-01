@@ -177,6 +177,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Scanner.cpp" />
+    <ClCompile Include="SerialConn.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SerialConn.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

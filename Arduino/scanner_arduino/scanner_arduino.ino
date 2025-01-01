@@ -1,18 +1,26 @@
 
+#define PC_BAUD_RATE 9600
 
-int cheese = 7;
-int cheese_arr[5];
+#define MSG_SIZE 256
+#define MSG_START_DELIM '\r'
+#define MSG_END_DELIM '\n'
 
 void setup() {
-  // put your setup code here, to run once:
-  cheese_arr[1] = 12;
-  Serial.begin(9600);
+  Serial.begin(PC_BAUD_RATE);
+}
+
+void printToSerialWithDelimiters(const char* message) {
+  // Buffer to hold the formatted message
+  char formattedMessage[MSG_SIZE];
+  for(int i = 0; i < MSG_SIZE; i++) {
+    formattedMessage[i] = 0;
+  }
+
+  // Format the message with \r at the front and \n at the end
+  sprintf(formattedMessage, "%c%s%c", MSG_START_DELIM, message, MSG_END_DELIM);
+  int bytesSent = Serial.write(formattedMessage);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  cheese++;
-  Serial.write(45); // send a byte with the value 45
-
-  int bytesSent = Serial.write("hello");  //send the string "hello" and return the length of the string.
+  printToSerialWithDelimiters("PHOTO EXECUTE");
 }
