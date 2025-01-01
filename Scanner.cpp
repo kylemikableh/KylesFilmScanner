@@ -18,6 +18,9 @@
     when explicitly released or when the smart pointer object is destroyed.
 */
 
+#include <iostream>
+#include <boost/asio.hpp>
+
 // Include files to use the pylon API.
 #include <pylon/PylonIncludes.h>
 #ifdef PYLON_WIN_BUILD
@@ -29,6 +32,8 @@ using namespace Pylon;
 
 // Namespace for using cout.
 using namespace std;
+
+using namespace boost::asio;
 
 // Number of images to be grabbed.
 static const uint32_t c_countOfImagesToGrab = 100;
@@ -102,6 +107,27 @@ int main( int /*argc*/, char* /*argv*/[] )
 
     // Releases all pylon resources.
     PylonTerminate();
+
+    // Serial testing
+    try {
+        io_service io;
+        serial_port serial(io, "COM6"); // Replace "COM3" with your Arduino's COM port
+
+        serial.set_option(serial_port_base::baud_rate(9600));
+        serial.set_option(serial_port_base::character_size(8));
+        serial.set_option(serial_port_base::parity(serial_port_base::parity::none));
+        serial.set_option(serial_port_base::stop_bits(serial_port_base::stop_bits::one));
+        serial.set_option(serial_port_base::flow_control(serial_port_base::flow_control::none));
+
+        while (true) {
+            char c;
+            read(serial, buffer(&c, 1));
+            cout << c;
+        }
+    }
+    catch (boost::system::system_error& e) {
+        cerr << "Error: " << e.what() << endl;
+    }
 
     return exitCode;
 }
