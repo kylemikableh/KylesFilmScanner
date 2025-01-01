@@ -176,10 +176,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="ImageCaptureController.cpp" />
     <ClCompile Include="Scanner.cpp" />
     <ClCompile Include="SerialConn.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ImageCaptureController.h" />
     <ClInclude Include="SerialConn.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

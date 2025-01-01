@@ -16,9 +16,15 @@
     <ClCompile Include="SerialConn.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ImageCaptureController.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SerialConn.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ImageCaptureController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -74,29 +74,8 @@ char* SerialConn::readBetweenDelimiters(const char startDelim, const char endDel
 }
 
 
-
-
-
 SerialConn::~SerialConn()
 {
     // Destructor body can be empty as the io_service and serial_port
     // will automatically clean up their resources.
 }
-
-//// Serial testing
-//try {
-//    io_service io;
-//    serial_port serial(io, "COM6"); // Replace "COM3" with your Arduino's COM port
-//
-//    serial.set_option(serial_port_base::baud_rate(9600));
-//    serial.set_option(serial_port_base::character_size(8));
-//    serial.set_option(serial_port_base::parity(serial_port_base::parity::none));
-//    serial.set_option(serial_port_base::stop_bits(serial_port_base::stop_bits::one));
-//    serial.set_option(serial_port_base::flow_control(serial_port_base::flow_control::none));
-//
-//    while (true) {
-//        char c;
-//        read(serial, buffer(&c, 1));
-//        cout << c;
-//    }
-//}
