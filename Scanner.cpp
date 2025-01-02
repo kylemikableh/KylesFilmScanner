@@ -17,7 +17,6 @@ int main(int argc, char* argv[])
 {
     int exitCode = 0;
 
-
 	ImageCaptureController::initializePylon();
 	ImageCaptureController imageCaptureController = ImageCaptureController("EK00001");
 	imageCaptureController.captureFrame();
@@ -25,17 +24,22 @@ int main(int argc, char* argv[])
     imageCaptureController.captureFrame();
 
     // Comment the following two lines to disable waiting on exit.
-    cerr << endl << "Press enter to exit." << endl;
-    while (cin.get() != '\n');
+    /*cerr << endl << "Press enter to exit." << endl;
+    while (cin.get() != '\n');*/
 
 	SerialConn arduinoConnection = SerialConn(ARDUINO_BAUD_RATE, ARDUINO_PORT);
-	char* buffer = arduinoConnection.readBetweenDelimiters(ARDUINO_MSG_START_DELIM, ARDUINO_MSG_END_DELIM);
-    if (buffer != nullptr) {
-        cout << buffer << endl;
+
+    while (true) {
+        char* buffer = arduinoConnection.readMessage(ARDUINO_MSG_START_DELIM, ARDUINO_MSG_END_DELIM);
+        if (buffer != nullptr) {
+            cout << buffer << endl;
+        }
+		arduinoConnection.parseMessage(buffer);
     }
-    else {
+
+    /*else {
 		cout << "Error reading from Arduino." << endl;
-    }
+    }*/
 
     return exitCode;
 }

@@ -1,3 +1,9 @@
+/*
+*   ImageCaptureController.h
+*	Film Scanner Master PC Control Software by Kyle Mikolajczyk
+*   kyle@kylem.org
+*/
+
 #pragma once
 
 // Include files to use the pylon API.

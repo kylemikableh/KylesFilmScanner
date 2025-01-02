@@ -1,3 +1,9 @@
+/*
+*   ImageCaptureController.cpp
+*	Film Scanner Master PC Control Software by Kyle Mikolajczyk
+*	kyle@kylem.org
+*/
+
 #include "ImageCaptureController.h"
 
 // Initialize the static member variable
