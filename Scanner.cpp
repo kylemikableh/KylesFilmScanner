@@ -30,11 +30,17 @@ int main(int argc, char* argv[])
 	SerialConn arduinoConnection = SerialConn(ARDUINO_BAUD_RATE, ARDUINO_PORT);
 
     while (true) {
+        cout << "Sent command to set color to RED" << endl;
+        // Test out sending command to arduino with pause
+		arduinoConnection.sendCommand(SerialConn::SET_COLOR_RED);
+
         char* buffer = arduinoConnection.readMessage(ARDUINO_MSG_START_DELIM, ARDUINO_MSG_END_DELIM);
         if (buffer != nullptr) {
             cout << buffer << endl;
+            arduinoConnection.parseMessage(buffer);
         }
-		arduinoConnection.parseMessage(buffer);
+
+		Sleep(1000);
     }
 
     /*else {
