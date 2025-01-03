@@ -56,6 +56,8 @@ enum Arduino_Command_Type {
     RESET_FRAME_ID
 };
 
+char messageReceivedBuffer[MSG_SIZE]; // Initialize the buffer to hold the raw message from PC
+
 
 void setup() {
   Serial.begin(PC_BAUD_RATE);
@@ -153,86 +155,104 @@ void handleCommand(Arduino_Command_Type command, int value) {
     }
 }
 
-char* readMessageFromSerial(const char startDelim, const char endDelim) {
+bool readMessageFromSerial(const char startDelim, const char endDelim) {
     // Buffer to hold the message
-    char* message = new char[MSG_SIZE];
-    for (int i = 0; i < MSG_SIZE; i++) {
-        message[i] = 0;
-    }
-    // Read the message from the serial connection
+    
     int i = 0;
+    bool messageStarted = false;
+    char lastChar = 'z';
+
+    // Initialize the buffer
+    memset(messageReceivedBuffer, 0, MSG_SIZE);
+
     while (true) {
         while (Serial.available() == 0);
         char c = Serial.read();
+
+        // Serial.print(c);
+
         if (c == startDelim) {
+            messageStarted = true;
             continue;
         }
         if (c == endDelim) {
             break;
         }
-        message[i] = c;
-        Serial.print(c);
-        i++;
+        if (messageStarted && i < MSG_SIZE - 1) { // Ensure we don't overflow the buffer
+            messageReceivedBuffer[i] = c;
+            //Serial.print(message[i]);
+            // Serial.print(c);
+            lastChar = c;
+            i++;
+        } else {
+            break;
+        }
+
     }
-    return message;
+    // Null-terminate the message
+    messageReceivedBuffer[i] = '\0';
+    lastChar = lastChar;
+    printf("%s", lastChar);
+    return true;
 }
 
 void waitForCommandFromPC() {
     delay(10);
-    char* command = readMessageFromSerial(MSG_START_DELIM, MSG_END_DELIM);
-    handleCommandFromString(command);
+    bool gotMessage = readMessageFromSerial(MSG_START_DELIM, MSG_END_DELIM);
+    if(gotMessage) {
+      handleCommandFromString();
+    }
 }
 
 /*
 * Decode string to Arduino_Command_Type which we received from the PC
 */
-void handleCommandFromString(const char* command) {
+void handleCommandFromString() {
     // Determine the message type from the message string
-    Arduino_Command_Type commandType;
+    Arduino_Command_Type commandType = static_cast<Arduino_Command_Type>(-1);
     int value = -1;
 
-    if (strcmp(command, "SET_COLOR_RED") == 0) {
+    if (strcmp(messageReceivedBuffer, "SET_COLOR_RED") == 0) {
         commandType = SET_COLOR_RED;
-    } else if (strcmp(command, "SET_COLOR_GREEN") == 0) {
+    } else if (strcmp(messageReceivedBuffer, "SET_COLOR_GREEN") == 0) {
         commandType = SET_COLOR_GREEN;
-    } else if (strcmp(command, "SET_COLOR_BLUE") == 0) {
+    } else if (strcmp(messageReceivedBuffer, "SET_COLOR_BLUE") == 0) {
         commandType = SET_COLOR_BLUE;
-    } else if (strcmp(command, "FRAME_STEP") == 0) {
+    } else if (strcmp(messageReceivedBuffer, "FRAME_STEP") == 0) {
         commandType = FRAME_STEP;
-    } else if (strcmp(command, "GET_FRAME_ID") == 0) {
+    } else if (strcmp(messageReceivedBuffer, "GET_FRAME_ID") == 0) {
         commandType = GET_FRAME_ID;
-    } else if (strcmp(command, "GET_STEPPER_POS") == 0) {
+    } else if (strcmp(messageReceivedBuffer, "GET_STEPPER_POS") == 0) {
         commandType = GET_STEPPER_POS;
-    } else if (strcmp(command, "RESET_FRAME_ID") == 0) {
+    } else if (strcmp(messageReceivedBuffer, "RESET_FRAME_ID") == 0) {
         commandType = RESET_FRAME_ID;
-    } else if (strncmp(command, "GOTO_FRAME_ID:", 14 ) == 0) {
+    } else if (strncmp(messageReceivedBuffer, "GOTO_FRAME_ID:", 14 ) == 0) {
         commandType = GOTO_FRAME_ID;
         char* endPtr;
-        value = strtol(command + 14, &endPtr, 10); // Extract the number after "FRAME_ID:", 10 here is base10 number system
+        value = strtol(messageReceivedBuffer + 14, &endPtr, 10); // Extract the number after "FRAME_ID:", 10 here is base10 number system
         if (*endPtr != '\0') {
             // printf("Invalid number format in message: %s", command);
         }
-    } else if (strncmp(command, "GOTO_STEPPER_POS:", 17) == 0) {
+    } else if (strncmp(messageReceivedBuffer, "GOTO_STEPPER_POS:", 17) == 0) {
         commandType = GOTO_STEPPER_POS;
         char* endPtr;
-        value = strtol(command + 17, &endPtr, 10); // Extract the number after "STEPPER_POS:", 10 here is base10 number system
+        value = strtol(messageReceivedBuffer + 17, &endPtr, 10); // Extract the number after "STEPPER_POS:", 10 here is base10 number system
         if (*endPtr != '\0') {
             // printf("Invalid number format in message: %s", command);
         }
-    } else if (strncmp(command, "SET_FRAME_OFFSET:", 17) == 0) {
+    } else if (strncmp(messageReceivedBuffer, "SET_FRAME_OFFSET:", 17) == 0) {
         commandType = SET_FRAME_OFFSET;
         char* endPtr;
-        value = strtol(command + 17, &endPtr, 10); // Extract the number after "SET_FRAME_OFFSET:", 10 here is base10 number system
+        value = strtol(messageReceivedBuffer + 17, &endPtr, 10); // Extract the number after "SET_FRAME_OFFSET:", 10 here is base10 number system
         if (*endPtr != '\0') {
             // printf("Invalid number format in message: %s", command);
         }
     }
     else {
         // printf("Unknown command received from PC: %s", command);
-        Serial.print("Unknown command received from PC: ");
-        Serial.print(command);
+        // Serial.print("Unknown command received from PC: ");
+        // Serial.print(messageReceivedBuffer);
     }
-    delete[] command; // Make sure to delete the command string after we are done with it
 
     // Return if the commandType was never set
     if (commandType == -1) {
