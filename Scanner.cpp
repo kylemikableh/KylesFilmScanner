@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 
     int i = 0;
     while (true) {
-        if (i > 30) { break; }
+        if (i > 10) { break; }
         cout << "Sent command to set color to RED" << endl;
         // Test out sending command to arduino with pause
 		if (i == 0) {
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
             cout << "No response recieved for try " << i << endl;
         }
 
-		Sleep(100);
+		Sleep(25);
         i++;
     }
 

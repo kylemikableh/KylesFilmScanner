@@ -72,12 +72,17 @@ char SerialConn::getCharFromConn()
                 std::cerr << "Error: " << ec.message() << std::endl;
             }
         });
+    //std::cout << "Done reading char" << std::endl;
 
     // Run the I/O service to process the asynchronous operation
     while (!readComplete && !timed_out)
     {
-        io.run_one();
+        //std::cout << "In while loop" << std::endl;
+        if (io.poll_one() == 0) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
     }
+	//std::cout << "Out of while loop" << std::endl;
 
     // Ensure the timer is canceled and no longer active
     boost::system::error_code ignored_ec;
@@ -114,7 +119,9 @@ char* SerialConn::readMessage(const char startDelim, const char endDelim)
         //std::cout << "Starting read message..." << std::endl;
 
         while (true) {
+			//std::cout << "Reading char" << std::endl;
             char c = getCharFromConn(); // NOTE: Can hang here
+			//std::cout << c << std::endl;
             
 			if (c == '\t') {
 				std::cerr << "Error reading from serial connection." << std::endl;
