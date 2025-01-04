@@ -36,7 +36,7 @@ ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFacto
 ImageCaptureController::~ImageCaptureController()
 {
 	// Releases all pylon resources.
-	PylonTerminate();
+	//PylonTerminate();
 }
 
 /*

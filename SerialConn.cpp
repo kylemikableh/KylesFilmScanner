@@ -73,7 +73,11 @@ char SerialConn::getCharFromConn()
             }
         });
 
-    io.run_one(); // Run the I/O service to process the asynchronous operation
+    // Run the I/O service to process the asynchronous operation
+    while (!readComplete && !timed_out)
+    {
+        io.run_one();
+    }
 
     // Ensure the timer is canceled and no longer active
     boost::system::error_code ignored_ec;
@@ -88,7 +92,7 @@ char SerialConn::getCharFromConn()
     if (readComplete)
     {
         // NOTE: When debugging you can remove the comment to see the raw chars being received
-        std::cout << "Finished reading char: " << readChar << std::endl;
+        //std::cout << "Finished reading char: " << readChar << std::endl;
         return readChar;
     }
 
@@ -123,7 +127,6 @@ char* SerialConn::readMessage(const char startDelim, const char endDelim)
             }
 
             if (started) {
-                std::cout << "in started" << std::endl;
                 if (isprint(static_cast<unsigned char>(c)) || c == '\n' || c == '\r') { // Check for valid characters
                     buffer[i] = c;
                     if (buffer[i] == endDelim) {
@@ -190,7 +193,7 @@ void SerialConn::parseMessage(const char* message)
     }
     else if (strncmp(message, "STEPPER_POS:", 12) == 0)
     {
-        messageType = STEPPER_POS;
+        messageType = CURRENT_STEPPER_POS;
         char* endPtr;
         value = strtol(message + 12, &endPtr, 10); // Extract the number after "CURRENT_FRAME_ID:", 10 here is base10 number system
         if (*endPtr != '\0') {
@@ -240,7 +243,7 @@ void SerialConn::handleArduinoMessage(Arduino_Message_Type messageType, int valu
         std::cout << "Current Frame ID received: " << value << std::endl;
         // Handle CURRENT_FRAME_ID message with frameId
         break;
-    case STEPPER_POS:
+    case CURRENT_STEPPER_POS:
         std::cout << "Stepper position received: " << value << std::endl;
         // Handle STEPPER_POS message
         break;

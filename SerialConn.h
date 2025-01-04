@@ -11,8 +11,8 @@
 #include <boost/bind.hpp>
 
 #define MSG_SIZE 256
-#define MSG_START_DELIM '\r'
-#define MSG_END_DELIM '\n'
+#define MSG_START_DELIM '('
+#define MSG_END_DELIM ')'
 
 using namespace boost::asio;
 
@@ -44,8 +44,29 @@ class SerialConn
 	* RESET_FRAME_ID- Reset frame ID; This is to reset the frame ID to the given value
 	*/
 	public:
-		enum Arduino_Message_Type { ACK, READY, READY_RED, READY_GREEN, READY_BLUE, READY_FRAME, CURRENT_FRAME_ID, STEPPER_POS };
-		enum Arduino_Command_Type { SET_COLOR_RED, SET_COLOR_GREEN, SET_COLOR_BLUE, GOTO_FRAME_ID, FRAME_STEP, GOTO_STEPPER_POS, GET_FRAME_ID, GET_STEPPER_POS, SET_FRAME_OFFSET, RESET_FRAME_ID };
+		enum Arduino_Message_Type {
+			ACK,
+			READY,
+			READY_RED,
+			READY_GREEN,
+			READY_BLUE,
+			READY_FRAME,
+			CURRENT_FRAME_ID,
+			CURRENT_STEPPER_POS,
+			UNKNOWN
+		};
+		enum Arduino_Command_Type {
+			SET_COLOR_RED,
+			SET_COLOR_GREEN,
+			SET_COLOR_BLUE,
+			GOTO_FRAME_ID,
+			FRAME_STEP,
+			GOTO_STEPPER_POS,
+			GET_FRAME_ID,
+			GET_STEPPER_POS,
+			SET_FRAME_OFFSET,
+			RESET_FRAME_ID
+		};
 		SerialConn(int baudRate, const char* portId);
 		~SerialConn();
 

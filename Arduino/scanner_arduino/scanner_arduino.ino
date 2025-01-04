@@ -1,9 +1,9 @@
 
-#define PC_BAUD_RATE 9600
+#define PC_BAUD_RATE 115200 //9600
 
 #define MSG_SIZE 256
-#define MSG_START_DELIM '\r'
-#define MSG_END_DELIM '\n'
+#define MSG_START_DELIM '('
+#define MSG_END_DELIM ')'
 
 /*
 * Message Types FROM Arduino
@@ -40,7 +40,8 @@ enum Arduino_Message_Type {
     READY_BLUE,
     READY_FRAME,
     CURRENT_FRAME_ID,
-    STEPPER_POS
+    CURRENT_STEPPER_POS,
+    UNKNOWN
 };
 
 enum Arduino_Command_Type {
@@ -57,7 +58,8 @@ enum Arduino_Command_Type {
 };
 
 char messageReceivedBuffer[MSG_SIZE]; // Initialize the buffer to hold the raw message from PC
-
+int frameId = 0;
+int stepperPos = 0;
 
 void setup() {
   Serial.begin(PC_BAUD_RATE);
@@ -87,8 +89,8 @@ const char* getMessageTypeString(Arduino_Message_Type messageType) {
         case READY_BLUE: return "READY_BLUE";
         case READY_FRAME: return "READY_FRAME";
         case CURRENT_FRAME_ID: return "CURRENT_FRAME_ID:";
-        case STEPPER_POS: return "STEPPER_POS:";
-        default: return "UNKNOWN";
+        case CURRENT_STEPPER_POS: return "CURRENT_STEPPER_POS:";
+        default: return "UNKNOWN_CMD";
     }
 }
 
@@ -110,57 +112,55 @@ void handleCommand(Arduino_Command_Type command, int value) {
     switch (command) {
         case SET_COLOR_RED:
             // Set the color to RED
-            // printf("Received command to set color to RED\n");
             printMessageToSerial(READY_RED);
             break;
         case SET_COLOR_GREEN:
             // Set the color to GREEN
-            // printf("Received command to set color to GREEN\n");
+            printMessageToSerial(READY_GREEN);
             break;
         case SET_COLOR_BLUE:
             // Set the color to BLUE
-            // printf("Received command to set color to BLUE\n");
+            printMessageToSerial(READY_BLUE);
             break;
         case GOTO_FRAME_ID:
             // Move to the given frame ID
-            // printf("Received command to move to frame ID: %d\n", value);
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
             break;
         case FRAME_STEP:
             // Move the given number of frames
-            // printf("Received command to move %d frames\n", value);
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
             break;
         case GOTO_STEPPER_POS:
             // Move to the given stepper position
-            // printf("Received command to move to stepper position: %d\n", value);
+            printMessageToSerial(CURRENT_STEPPER_POS, stepperPos);
             break;
         case GET_FRAME_ID:
             // Get the current frame ID
-            // printf("Received command to get the current frame ID\n");
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
             break;
         case GET_STEPPER_POS:
             // Get the current stepper position
-            // printf("Received command to get the current stepper position\n");
+            printMessageToSerial(CURRENT_STEPPER_POS, stepperPos);
             break;
         case SET_FRAME_OFFSET:
             // Set the frame offset
-            // printf("Received command to set the frame offset to: %d\n", value);
+            printMessageToSerial(ACK);
             break;
         case RESET_FRAME_ID:
             // Reset the frame ID
-            // printf("Received command to reset the frame ID\n");
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
             break;
         default:
             // printf("Unknown command received from PC\n");
+            printMessageToSerial(UNKNOWN);
             break;
     }
 }
 
 bool readMessageFromSerial(const char startDelim, const char endDelim) {
-    // Buffer to hold the message
-    
     int i = 0;
     bool messageStarted = false;
-    char lastChar = 'z';
+    char lastChar = 'z'; // Debuger helper
 
     // Initialize the buffer
     memset(messageReceivedBuffer, 0, MSG_SIZE);
@@ -169,7 +169,7 @@ bool readMessageFromSerial(const char startDelim, const char endDelim) {
         while (Serial.available() == 0);
         char c = Serial.read();
 
-        // Serial.print(c);
+        // Serial.print(c); // Enable to debug
 
         if (c == startDelim) {
             messageStarted = true;
@@ -180,11 +180,9 @@ bool readMessageFromSerial(const char startDelim, const char endDelim) {
         }
         if (messageStarted && i < MSG_SIZE - 1) { // Ensure we don't overflow the buffer
             messageReceivedBuffer[i] = c;
-            //Serial.print(message[i]);
-            // Serial.print(c);
             lastChar = c;
             i++;
-        } else {
+        } else if (i > MSG_SIZE -1){
             break;
         }
 
@@ -193,7 +191,10 @@ bool readMessageFromSerial(const char startDelim, const char endDelim) {
     messageReceivedBuffer[i] = '\0';
     lastChar = lastChar;
     printf("%s", lastChar);
-    return true;
+    if(messageStarted) {
+      return true;
+    }
+    return false;
 }
 
 void waitForCommandFromPC() {
@@ -201,6 +202,10 @@ void waitForCommandFromPC() {
     bool gotMessage = readMessageFromSerial(MSG_START_DELIM, MSG_END_DELIM);
     if(gotMessage) {
       handleCommandFromString();
+    } else {
+      Serial.print(MSG_START_DELIM);
+      Serial.print("READY_FOR_COMMAND");
+      Serial.print(MSG_END_DELIM);
     }
 }
 
@@ -250,8 +255,10 @@ void handleCommandFromString() {
     }
     else {
         // printf("Unknown command received from PC: %s", command);
-        // Serial.print("Unknown command received from PC: ");
+        Serial.print(MSG_START_DELIM);
+        Serial.print("UNKNOWN_CMD");
         // Serial.print(messageReceivedBuffer);
+        Serial.print(MSG_END_DELIM);
     }
 
     // Return if the commandType was never set
@@ -265,8 +272,7 @@ void handleCommandFromString() {
 
 void loop() {
   // printMessageToSerial(STEPPER_POS, 888999000);
-  // delay(1000); // Wait for 1 second
+  delay(10); // Wait for 1 second
   // printf("Waiting for command from PC...");
-  // Serial.print("Waiting for command from PC.");
   waitForCommandFromPC();
 }
