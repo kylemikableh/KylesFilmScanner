@@ -1,27 +1,27 @@
 
-#define PC_BAUD_RATE 9600
+#define PC_BAUD_RATE 115200 //9600
 
 #define MSG_SIZE 256
-#define MSG_START_DELIM '\r'
-#define MSG_END_DELIM '\n'
+#define MSG_START_DELIM '('
+#define MSG_END_DELIM ')'
 
 /*
 * Message Types FROM Arduino
 * ACK- Acknowledge command from PC
 * READY- Arduino is ready to receive a command
-* READY:RED- Arduino is ready to scan RED color
-* READY:GREEN- Arduino is ready to scan GREEN color
-* READY:BLUE- Arduino is ready to scan BLUE color
-* READY:FRAME- Frame ready to be captured (all colors)
+* READY_RED- Arduino is ready to scan RED color
+* READY_GREEN- Arduino is ready to scan GREEN color
+* READY_BLUE- Arduino is ready to scan BLUE color
+* READY_FRAME- Frame ready to be captured (all colors)
 * CURRENT_FRAME_ID:0- Frame ID
 * STEPPER_POS:0- Stepper position
 */
 
 /*
 * Messag Types TO Arduino
-* SET_COLOR:RED
-* SET_COLOR:GREEN
-* SET_COLOR:BLUE
+* SET_COLOR_RED
+* SET_COLOR_GREEN
+* SET_COLOR_BLUE
 * GOTO_FRAME_ID:0- Frame ID; This is to advance (or rewind) to the given frame ID
 * FRAME_STEP:0- Frame step; This is to advance (or rewind) the given number of frames
 * GOTO_STEPPER_POS:0- Stepper position; This is to move the stepper to the given position
@@ -40,7 +40,8 @@ enum Arduino_Message_Type {
     READY_BLUE,
     READY_FRAME,
     CURRENT_FRAME_ID,
-    STEPPER_POS
+    CURRENT_STEPPER_POS,
+    UNKNOWN
 };
 
 enum Arduino_Command_Type {
@@ -56,6 +57,9 @@ enum Arduino_Command_Type {
     RESET_FRAME_ID
 };
 
+char messageReceivedBuffer[MSG_SIZE]; // Initialize the buffer to hold the raw message from PC
+int frameId = 0;
+int stepperPos = 0;
 
 void setup() {
   Serial.begin(PC_BAUD_RATE);
@@ -73,33 +77,20 @@ void printToSerialWithDelimiters(const char* message) {
   int bytesSent = Serial.write(formattedMessage);
 }
 
+/*
+* Get a message string to return that can be passed to PC from Arduino_Message_Type
+*/
 const char* getMessageTypeString(Arduino_Message_Type messageType) {
     switch (messageType) {
         case ACK: return "ACK";
         case READY: return "READY";
-        case READY_RED: return "READY:RED";
-        case READY_GREEN: return "READY:GREEN";
-        case READY_BLUE: return "READY:BLUE";
-        case READY_FRAME: return "READY:FRAME";
+        case READY_RED: return "READY_RED";
+        case READY_GREEN: return "READY_GREEN";
+        case READY_BLUE: return "READY_BLUE";
+        case READY_FRAME: return "READY_FRAME";
         case CURRENT_FRAME_ID: return "CURRENT_FRAME_ID:";
-        case STEPPER_POS: return "STEPPER_POS:";
-        default: return "UNKNOWN";
-    }
-}
-
-const char* getCommandTypeString(Arduino_Command_Type commandType) {
-    switch (commandType) {
-        case SET_COLOR_RED: return "SET_COLOR:RED";
-        case SET_COLOR_GREEN: return "SET_COLOR:GREEN";
-        case SET_COLOR_BLUE: return "SET_COLOR:BLUE";
-        case GOTO_FRAME_ID: return "GOTO_FRAME_ID";
-        case FRAME_STEP: return "FRAME_STEP";
-        case GOTO_STEPPER_POS: return "GOTO_STEPPER_POS";
-        case GET_FRAME_ID: return "GET_FRAME_ID";
-        case GET_STEPPER_POS: return "GET_STEPPER_POS";
-        case SET_FRAME_OFFSET: return "SET_FRAME_OFFSET";
-        case RESET_FRAME_ID: return "RESET_FRAME_ID";
-        default: return "UNKNOWN";
+        case CURRENT_STEPPER_POS: return "CURRENT_STEPPER_POS:";
+        default: return "UNKNOWN_CMD";
     }
 }
 
@@ -117,12 +108,171 @@ void printMessageToSerial(Arduino_Message_Type messageType, int number = -1) {
     printToSerialWithDelimiters(formattedMessage);
 }
 
-void printCommandToSerial(Arduino_Command_Type commandType) {
-    const char* command = getCommandTypeString(commandType);
-    printToSerialWithDelimiters(command);
+void handleCommand(Arduino_Command_Type command, int value) {
+    switch (command) {
+        case SET_COLOR_RED:
+            // Set the color to RED
+            printMessageToSerial(READY_RED);
+            break;
+        case SET_COLOR_GREEN:
+            // Set the color to GREEN
+            printMessageToSerial(READY_GREEN);
+            break;
+        case SET_COLOR_BLUE:
+            // Set the color to BLUE
+            printMessageToSerial(READY_BLUE);
+            break;
+        case GOTO_FRAME_ID:
+            // Move to the given frame ID
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
+            break;
+        case FRAME_STEP:
+            // Move the given number of frames
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
+            break;
+        case GOTO_STEPPER_POS:
+            // Move to the given stepper position
+            printMessageToSerial(CURRENT_STEPPER_POS, stepperPos);
+            break;
+        case GET_FRAME_ID:
+            // Get the current frame ID
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
+            break;
+        case GET_STEPPER_POS:
+            // Get the current stepper position
+            printMessageToSerial(CURRENT_STEPPER_POS, stepperPos);
+            break;
+        case SET_FRAME_OFFSET:
+            // Set the frame offset
+            printMessageToSerial(ACK);
+            break;
+        case RESET_FRAME_ID:
+            // Reset the frame ID
+            printMessageToSerial(CURRENT_FRAME_ID, frameId);
+            break;
+        default:
+            // printf("Unknown command received from PC\n");
+            printMessageToSerial(UNKNOWN);
+            break;
+    }
+}
+
+bool readMessageFromSerial(const char startDelim, const char endDelim) {
+    int i = 0;
+    bool messageStarted = false;
+    char lastChar = 'z'; // Debuger helper
+
+    // Initialize the buffer
+    memset(messageReceivedBuffer, 0, MSG_SIZE);
+
+    while (true) {
+        while (Serial.available() == 0);
+        char c = Serial.read();
+
+        // Serial.print(c); // Enable to debug
+
+        if (c == startDelim) {
+            messageStarted = true;
+            continue;
+        }
+        if (c == endDelim) {
+            break;
+        }
+        if (messageStarted && i < MSG_SIZE - 1) { // Ensure we don't overflow the buffer
+            messageReceivedBuffer[i] = c;
+            lastChar = c;
+            i++;
+        } else if (i > MSG_SIZE -1){
+            break;
+        }
+
+    }
+    // Null-terminate the message
+    messageReceivedBuffer[i] = '\0';
+    lastChar = lastChar;
+    printf("%s", lastChar);
+    if(messageStarted) {
+      return true;
+    }
+    return false;
+}
+
+void waitForCommandFromPC() {
+    delay(10);
+    bool gotMessage = readMessageFromSerial(MSG_START_DELIM, MSG_END_DELIM);
+    if(gotMessage) {
+      handleCommandFromString();
+    } else {
+      Serial.print(MSG_START_DELIM);
+      Serial.print("READY_FOR_COMMAND");
+      Serial.print(MSG_END_DELIM);
+    }
+}
+
+/*
+* Decode string to Arduino_Command_Type which we received from the PC
+*/
+void handleCommandFromString() {
+    // Determine the message type from the message string
+    Arduino_Command_Type commandType = static_cast<Arduino_Command_Type>(-1);
+    int value = -1;
+
+    if (strcmp(messageReceivedBuffer, "SET_COLOR_RED") == 0) {
+        commandType = SET_COLOR_RED;
+    } else if (strcmp(messageReceivedBuffer, "SET_COLOR_GREEN") == 0) {
+        commandType = SET_COLOR_GREEN;
+    } else if (strcmp(messageReceivedBuffer, "SET_COLOR_BLUE") == 0) {
+        commandType = SET_COLOR_BLUE;
+    } else if (strcmp(messageReceivedBuffer, "FRAME_STEP") == 0) {
+        commandType = FRAME_STEP;
+    } else if (strcmp(messageReceivedBuffer, "GET_FRAME_ID") == 0) {
+        commandType = GET_FRAME_ID;
+    } else if (strcmp(messageReceivedBuffer, "GET_STEPPER_POS") == 0) {
+        commandType = GET_STEPPER_POS;
+    } else if (strcmp(messageReceivedBuffer, "RESET_FRAME_ID") == 0) {
+        commandType = RESET_FRAME_ID;
+    } else if (strncmp(messageReceivedBuffer, "GOTO_FRAME_ID:", 14 ) == 0) {
+        commandType = GOTO_FRAME_ID;
+        char* endPtr;
+        value = strtol(messageReceivedBuffer + 14, &endPtr, 10); // Extract the number after "FRAME_ID:", 10 here is base10 number system
+        if (*endPtr != '\0') {
+            // printf("Invalid number format in message: %s", command);
+        }
+    } else if (strncmp(messageReceivedBuffer, "GOTO_STEPPER_POS:", 17) == 0) {
+        commandType = GOTO_STEPPER_POS;
+        char* endPtr;
+        value = strtol(messageReceivedBuffer + 17, &endPtr, 10); // Extract the number after "STEPPER_POS:", 10 here is base10 number system
+        if (*endPtr != '\0') {
+            // printf("Invalid number format in message: %s", command);
+        }
+    } else if (strncmp(messageReceivedBuffer, "SET_FRAME_OFFSET:", 17) == 0) {
+        commandType = SET_FRAME_OFFSET;
+        char* endPtr;
+        value = strtol(messageReceivedBuffer + 17, &endPtr, 10); // Extract the number after "SET_FRAME_OFFSET:", 10 here is base10 number system
+        if (*endPtr != '\0') {
+            // printf("Invalid number format in message: %s", command);
+        }
+    }
+    else {
+        // printf("Unknown command received from PC: %s", command);
+        Serial.print(MSG_START_DELIM);
+        Serial.print("UNKNOWN_CMD");
+        // Serial.print(messageReceivedBuffer);
+        Serial.print(MSG_END_DELIM);
+    }
+
+    // Return if the commandType was never set
+    if (commandType == -1) {
+        return;
+    }
+
+    handleCommand(commandType, value);
+
 }
 
 void loop() {
-  printMessageToSerial(STEPPER_POS, 888999000);
-  delay(1000); // Wait for 1 second
+  // printMessageToSerial(STEPPER_POS, 888999000);
+  delay(10); // Wait for 1 second
+  // printf("Waiting for command from PC...");
+  waitForCommandFromPC();
 }
