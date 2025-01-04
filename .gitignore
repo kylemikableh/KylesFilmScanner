@@ -12,6 +12,8 @@
 *.tlog
 *.tiff
 
+[Dd]ebug_x64/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
