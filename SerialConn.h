@@ -7,6 +7,12 @@
 #pragma once
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/asio/deadline_timer.hpp>
+#include <boost/bind.hpp>
+
+#define MSG_SIZE 256
+#define MSG_START_DELIM '('
+#define MSG_END_DELIM ')'
 
 using namespace boost::asio;
 
@@ -38,19 +44,53 @@ class SerialConn
 	* RESET_FRAME_ID- Reset frame ID; This is to reset the frame ID to the given value
 	*/
 	public:
-		enum Arduino_Message_Type { ACK, READY, READY_RED, READY_GREEN, READY_BLUE, READY_FRAME, CURRENT_FRAME_ID, STEPPER_POS };
-		enum Arduino_Command_Type { SET_COLOR, GOTO_FRAME_ID, FRAME_STEP, GOTO_STEPPER_POS, GET_FRAME_ID, GET_STEPPER_POS, SET_FRAME_OFFSET, RESET_FRAME_ID };
+		enum Arduino_Message_Type {
+			ACK,
+			READY,
+			READY_RED,
+			READY_GREEN,
+			READY_BLUE,
+			READY_FRAME,
+			CURRENT_FRAME_ID,
+			CURRENT_STEPPER_POS,
+			UNKNOWN
+		};
+		enum Arduino_Command_Type {
+			SET_COLOR_RED,
+			SET_COLOR_GREEN,
+			SET_COLOR_BLUE,
+			GOTO_FRAME_ID,
+			FRAME_STEP,
+			GOTO_STEPPER_POS,
+			GET_FRAME_ID,
+			GET_STEPPER_POS,
+			SET_FRAME_OFFSET,
+			RESET_FRAME_ID
+		};
 		SerialConn(int baudRate, const char* portId);
 		~SerialConn();
+
 		char* readMessage(const char startDelim, const char endDelim);
 		void parseMessage(const char* message);
-		void handleArduinoMessage(Arduino_Message_Type messageType, int value);
-		void sendCommand(const char* command);
+
+		void sendCommand(Arduino_Command_Type command);
+		void sendCommand(Arduino_Command_Type command, int value);
 	private:
 		io_service io;
 		serial_port serial;
 
+		bool timed_out = false;
+
+		boost::asio::io_service::work work;
+		std::thread ioThread;
+		char readChar;
+		bool readComplete;
+
+		void checkDeadline(boost::asio::deadline_timer* timer, boost::asio::serial_port* serial);
+
+		void handleArduinoMessage(Arduino_Message_Type messageType, int value);
 		char getCharFromConn();
+		void printToSerialWithDelimiters(const char* message);
 
 };
 
