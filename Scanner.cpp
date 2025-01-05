@@ -11,6 +11,7 @@
 
 #include "SerialConn.h"
 #include "ImageCaptureController.h"
+#include <OpenImageIO/imageio.h>
 
 bool useCamera = false;
 
