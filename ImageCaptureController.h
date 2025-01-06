@@ -6,12 +6,14 @@
 
 #pragma once
 
+#include <OpenImageIO/imagebuf.h>
 // Include files to use the pylon API.
 #include <pylon/PylonIncludes.h>
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h>
 #endif
 #include <string>
+#include "RGBImage.h"
 
 using namespace std;
 // Namespace for using pylon objects.
@@ -33,6 +35,9 @@ class ImageCaptureController
 		CInstantCamera camera;
 		int imgPosition = 0;
 		std::string captureId;
-		int captureImage(ImageType type);
+		OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer();
+
+		void manuallyStepThroughImage();
+		void printImageFormatType(CGrabResultPtr ptrGrabResult);
 };
 
