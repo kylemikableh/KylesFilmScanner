@@ -34,6 +34,7 @@ int main(int argc, char* argv[])
         imageCaptureController = initializeImageController();
         imageCaptureController->captureFrame();
     }
+    cout << "here4";
 
     int i = 0;
     while (true) {
