@@ -15,6 +15,7 @@
 #include <OpenImageIO/imagebuf.h>
 
 bool useCamera = true;
+bool enableSerialComms = false;
 
 ImageCaptureController* initializeImageController() {
     ImageCaptureController::initializePylon();
@@ -42,10 +43,9 @@ int main(int argc, char* argv[])
         imageCaptureController->captureFrame();
         imageCaptureController->captureFrame();
     }
-    cout << "here4";
 
     int i = 0;
-    while (true) {
+    while (enableSerialComms) {
         if (i > 10) { break; }
         cout << "Sent command to set color to RED" << endl;
         // Test out sending command to arduino with pause

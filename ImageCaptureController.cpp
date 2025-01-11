@@ -159,34 +159,12 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
                 dataType = OIIO::TypeDesc::UINT16;
             }
 
-
             // Create an ImageSpec
             OIIO::ImageSpec spec(width, height, nchannels, dataType);
 
             // Create an ImageBuf from the raw image data
             image = new OIIO::ImageBuf(spec);
 			image->set_pixels(OIIO::ROI::All(), dataType, pImageBuffer);
-
-            //// Determine the file name based on the image type
-            //std::string color;
-            //switch (type)
-            //{
-            //case RED:
-            //    color = "RED";
-            //    break;
-            //case GREEN:
-            //    color = "GREEN";
-            //    break;
-            //case BLUE:
-            //    color = "BLUE";
-            //    break;
-            //}
-
-            //string filename = "img/image" + captureId + "_" + to_string(imgPosition) + "_" + color + ".tiff";
-
-            //// Save the image to a file
-            //Pylon::CImagePersistence::Save(Pylon::ImageFileFormat_Tiff, filename.c_str(), ptrGrabResult);
-
 
             #ifdef PYLON_WIN_BUILD
             // Display the grabbed image.
