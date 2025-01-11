@@ -4,13 +4,16 @@
 *	kyle@kylem.org
 */
 
-#define REQUIRE_MANUAL_STEP true
+#define REQUIRE_MANUAL_STEP false
 
 #include "ImageCaptureController.h"
 
 // Initialize the static member variable
 bool ImageCaptureController::pylonInitialized = false;
 
+/*
+* 
+*/
 void ImageCaptureController::initializePylon()
 {
     if (!pylonInitialized)
@@ -20,6 +23,9 @@ void ImageCaptureController::initializePylon()
     }
 }
 
+/*
+* 
+*/
 ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFactory::GetInstance().CreateFirstDevice()), captureId(id), stopWorker(false), lastImageId(0)
 {   
     // Print the model name of the camera.
@@ -34,6 +40,10 @@ ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFacto
     initializeCamera();
 }
 
+/*
+* Setup the camera and various parameters to configure
+* that is different from the default values (such as set it to 12bit mode
+*/
 void ImageCaptureController::initializeCamera()
 {
     try
@@ -41,6 +51,7 @@ void ImageCaptureController::initializeCamera()
         // Ensure the camera is open
         if (!camera.IsOpen())
         {
+            cout << "Opening camera..." << endl;
             camera.Open();
         }
 
@@ -54,7 +65,8 @@ void ImageCaptureController::initializeCamera()
         }
         else
         {
-            cout << "Mono12 pixel format not available" << endl;
+            cout << "Mono12 pixel format not available. Cannot proceed." << endl;
+            std::exit(EXIT_FAILURE);
         }
 
     }
@@ -65,8 +77,9 @@ void ImageCaptureController::initializeCamera()
     }
 }
 
-// Manually step through the image capture process
-// Used to debug and manually swap colors
+/*
+* Manually step through the image capture process. Used to debug and manually swap colors.
+*/ 
 void ImageCaptureController::manuallyStepThroughImage()
 {   
 	if (!REQUIRE_MANUAL_STEP)
@@ -111,8 +124,6 @@ int ImageCaptureController::captureFrame()
 	rgbImage->setCaptureId(captureId);
 	rgbImage->setImageId(lastImageId);
 
-	cout << "Pushing image to queue" << endl;
-
     // Push the RGBImage object to the queue
     imageQueue.push(rgbImage);
 
@@ -123,18 +134,16 @@ int ImageCaptureController::captureFrame()
     return 0;
 }
 
+/*
+* Capture a single image from the Basler camera. From here convert the basler image type
+* to an OIIO image type that can be manipulated better. Also, if this is a windows 
+* computer we can view the image through the Basler DisplayImage function.
+*/
 OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
 {
     OIIO::ImageBuf* image; // Image to return
     try
     {
-        // Ensure the camera is open and ready to grab images
-        if (!camera.IsOpen())
-        {
-			cout << "Opening camera..." << endl;
-            camera.Open();
-        }
-
         // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
         camera.GrabOne(5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
@@ -156,15 +165,13 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
             EPixelType pixelType = ptrGrabResult->GetPixelType();
 
             // Debugging information
-            cout << "Pixel type value: " << static_cast<int>(pixelType) << endl;
+           /* cout << "Pixel type value: " << static_cast<int>(pixelType) << endl;
             cout << "PixelType_Mono16 value: " << static_cast<int>(PixelType_Mono12) << endl;
-            cout << "Comparison result: " << (pixelType == PixelType_Mono12) << endl;
+            cout << "Comparison result: " << (pixelType == PixelType_Mono12) << endl;*/
 
 
             // Determine the data type based on the pixel type
             OIIO::TypeDesc dataType = OIIO::TypeDesc::UINT16; // Cast to 16 because OIIO does not have 12bit
-            cout << "Data type is uint8" << endl;
-
 
             // Create an ImageSpec
             OIIO::ImageSpec spec(width, height, nchannels, dataType);
@@ -173,11 +180,7 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
             image = new OIIO::ImageBuf(spec);
 
             // Scale the 12-bit data to the full 16-bit range
-            std::vector<uint16_t> scaledBuffer(width * height);
-            for (int i = 0; i < width * height; ++i)
-            {
-                scaledBuffer[i] = pImageBuffer[i] << 4; // Left shift by 4 bits to scale to 16-bit range
-            }
+            std::vector<uint16_t> scaledBuffer = scale12BitTo16Bit(pImageBuffer, width, height);
 
             image->set_pixels(OIIO::ROI::All(), dataType, scaledBuffer.data());
 
@@ -202,17 +205,25 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
     }
 }
 
-ImageCaptureController::~ImageCaptureController()
+/*
+* The camera is set to 12bit mode but OIIO does not support 12bit, only 8 or 16, thus
+* we will use a 16bit container with the 12bit data, so we have to scale it to the 
+* correct range or else the image wil appear much darker
+*/
+std::vector<uint16_t> ImageCaptureController::scale12BitTo16Bit(const uint16_t* pImageBuffer, int width, int height)
 {
+    std::vector<uint16_t> scaledBuffer(width * height);
+    for (int i = 0; i < width * height; ++i)
     {
-        std::lock_guard<std::mutex> lock(stopMutex);
-        stopWorker = true;
+        scaledBuffer[i] = pImageBuffer[i] << 4; // Left shift by 4 bits to scale to 16-bit range
     }
-    stopCondition.notify_all();
-    workerThread.join();
-    //PylonTerminate();
+    return scaledBuffer;
 }
 
+/*
+* In a seperate thread than the main application, process the mono images into the final 
+* full color full bit image, and write to disk
+*/
 void ImageCaptureController::processQueue()
 {
     while (true)
@@ -232,7 +243,7 @@ void ImageCaptureController::processQueue()
             cout << "Processing image " << rgbImage->getImageId() << endl;
             if (rgbImage->isReadyToMerge())
             {
-                OIIO::ImageBuf* mergedImage = ImagesProcessor::mergeRGBImages(rgbImage->getRedImage(), rgbImage->getGreenImage(), rgbImage->getBlueImage());
+                OIIO::ImageBuf* mergedImage = ImagesProcessor::createProcessedRGBImage(rgbImage->getRedImage(), rgbImage->getGreenImage(), rgbImage->getBlueImage());
                 if (mergedImage != nullptr)
                 {
                     ImagesProcessor::saveImage(mergedImage, "img/image" + rgbImage->getCaptureId() + "_" + to_string(rgbImage->getImageId()) + ".tiff");
@@ -250,5 +261,16 @@ void ImageCaptureController::processQueue()
             delete rgbImage; // Don't forget to delete the RGBImage object
         }
     }
+}
+
+ImageCaptureController::~ImageCaptureController()
+{
+    {
+        std::lock_guard<std::mutex> lock(stopMutex);
+        stopWorker = true;
+    }
+    stopCondition.notify_all();
+    workerThread.join();
+    //PylonTerminate();
 }
 

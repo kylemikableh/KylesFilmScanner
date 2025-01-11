@@ -12,7 +12,6 @@
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h>
 #endif
-#include <pylon/PylonIncludes.h>
 #include <pylon/BaslerUniversalInstantCamera.h>
 #include <string>
 #include <thread>
@@ -22,7 +21,6 @@
 #include "RGBImageQueue.h"
 
 using namespace std;
-// Namespace for using pylon objects.
 using namespace Pylon;
 
 class ImageCaptureController
@@ -36,17 +34,12 @@ class ImageCaptureController
 		int captureFrame(); // Will get all colors for 1 frame
 		
 	private:
-		void processQueue();
 
 		static bool pylonInitialized; // Static flag to check if Pylon is initialized
 
 		// This smart pointer will receive the grab result data.
 		CGrabResultPtr ptrGrabResult;
 		CInstantCamera camera;
-		
-		OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer();
-
-		void manuallyStepThroughImage();
 
 		int lastImageId;
 		std::string captureId;
@@ -56,5 +49,10 @@ class ImageCaptureController
 		std::atomic<bool> stopWorker;
 		std::condition_variable stopCondition;
 		std::mutex stopMutex;
+
+		std::vector<uint16_t> scale12BitTo16Bit(const uint16_t* pImageBuffer, int width, int height);
+		void processQueue();
+		OIIO::ImageBuf* captureImageAsBuffer();
+		void manuallyStepThroughImage();
 };
 
