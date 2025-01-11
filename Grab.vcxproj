@@ -121,7 +121,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(PYLON_DEV_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -192,6 +192,7 @@
     <ClCompile Include="ImageCaptureController.cpp" />
     <ClCompile Include="ImagesProcessor.cpp" />
     <ClCompile Include="RGBImage.cpp" />
+    <ClCompile Include="RGBImageQueue.cpp" />
     <ClCompile Include="Scanner.cpp" />
     <ClCompile Include="SerialConn.cpp" />
   </ItemGroup>
@@ -199,6 +200,7 @@
     <ClInclude Include="ImageCaptureController.h" />
     <ClInclude Include="ImagesProcessor.h" />
     <ClInclude Include="RGBImage.h" />
+    <ClInclude Include="RGBImageQueue.h" />
     <ClInclude Include="SerialConn.h" />
   </ItemGroup>
   <ItemGroup>

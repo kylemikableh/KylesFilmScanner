@@ -10,6 +10,8 @@ RGBImage::RGBImage()
 	redImage = nullptr;
 	greenImage = nullptr;
 	blueImage = nullptr;
+	imageId = 0;
+	captureId = "undefined_id";
 }
 
 void RGBImage::setRedImage(OIIO::ImageBuf* redImage)

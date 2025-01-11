@@ -33,6 +33,14 @@ int main(int argc, char* argv[])
     if (useCamera) {
         imageCaptureController = initializeImageController();
         imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
+        imageCaptureController->captureFrame();
     }
     cout << "here4";
 

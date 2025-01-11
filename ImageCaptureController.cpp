@@ -4,7 +4,7 @@
 *	kyle@kylem.org
 */
 
-#define REQUIRE_MANUAL_STEP true
+#define REQUIRE_MANUAL_STEP false
 
 #include "ImageCaptureController.h"
 
@@ -20,7 +20,7 @@ void ImageCaptureController::initializePylon()
     }
 }
 
-ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFactory::GetInstance().CreateFirstDevice()), captureId(id)
+ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFactory::GetInstance().CreateFirstDevice()), captureId(id), stopWorker(false), lastImageId(0)
 {   
     // Print the model name of the camera.
     cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
@@ -28,17 +28,9 @@ ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFacto
     // The parameter MaxNumBuffer can be used to control the count of buffers
     // allocated for grabbing. The default value of this parameter is 10.
     camera.MaxNumBuffer = 5;
-
-    // Start the grabbing of c_countOfImagesToGrab images.
-    // The camera device is parameterized with a default configuration which
-    // sets up free-running continuous acquisition.
-	//camera.StartGrabbing(GrabStrategy_OneByOne, GrabLoop_ProvidedByInstantCamera);
-}
-
-ImageCaptureController::~ImageCaptureController()
-{
-	// Releases all pylon resources.
-	//PylonTerminate();
+    
+    // Start the worker thread
+    workerThread = std::thread(&ImageCaptureController::processQueue, this);
 }
 
 // Manually step through the image capture process
@@ -78,38 +70,25 @@ int ImageCaptureController::captureFrame()
 	OIIO::ImageBuf* blueImageBuff = captureImageAsBuffer();
 
 	// Create an RGBImage object and set the images
-	RGBImage rgbImage = RGBImage();
-	rgbImage.setRedImage(redImageBuff);
-	rgbImage.setGreenImage(greenImageBuff);
-	rgbImage.setBlueImage(blueImageBuff);
+	RGBImage* rgbImage = new RGBImage();
+	rgbImage->setRedImage(redImageBuff);
+	rgbImage->setGreenImage(greenImageBuff);
+	rgbImage->setBlueImage(blueImageBuff);
 
-	// Check if all images are ready to be merged
-	OIIO::ImageBuf* mergedImage = nullptr;
-    if (rgbImage.isReadyToMerge())
-    {
-        // Merge the images
-        mergedImage = ImagesProcessor::mergeRGBImages(redImageBuff, greenImageBuff, blueImageBuff);
-	}
-	else
-	{
-		cout << "Error: Not all images are ready to be merged." << endl;
-	}
+    // File details
+	rgbImage->setCaptureId(captureId);
+	rgbImage->setImageId(lastImageId);
 
-	// Save the merged image
-	if (mergedImage != nullptr)
-	{
-		ImagesProcessor::saveImage(mergedImage, "img/image" + captureId + "_" + to_string(imgPosition) + ".tiff");
-		delete mergedImage;
-	}
-	else
-	{
-		cout << "Error: Merged image is null." << endl;
-	}
+	cout << "Pushing image to queue" << endl;
 
-    // RgbImage should auto delete the image buffers I think?
+    // Push the RGBImage object to the queue
+    imageQueue.push(rgbImage);
 
-    imgPosition++;
-	return 0;
+    // Notify the worker thread that a new image is available
+    stopCondition.notify_all();
+
+    lastImageId++;
+    return 0;
 }
 
 void ImageCaptureController::printImageFormatType(CGrabResultPtr ptrGrabResult)
@@ -120,21 +99,21 @@ void ImageCaptureController::printImageFormatType(CGrabResultPtr ptrGrabResult)
     // Print the pixel type
     switch (pixelType)
     {
-    case PixelType_Mono8:
-    case PixelType_Mono10:
-    case PixelType_Mono12:
-    case PixelType_Mono16:
-        cout << "Image format: Monochrome, 1 channel" << endl;
-        break;
-    case PixelType_RGB8packed:
-    case PixelType_BGR8packed:
-    case PixelType_RGBA8packed:
-    case PixelType_BGRA8packed:
-        cout << "Image format: RGB" << endl;
-        break;
-    default:
-        cout << "Image format: Unknown" << endl;
-        break;
+        case PixelType_Mono8:
+        case PixelType_Mono10:
+        case PixelType_Mono12:
+        case PixelType_Mono16:
+            cout << "Image format: Monochrome, 1 channel" << endl;
+            break;
+        case PixelType_RGB8packed:
+        case PixelType_BGR8packed:
+        case PixelType_RGBA8packed:
+        case PixelType_BGRA8packed:
+            cout << "Image format: RGB" << endl;
+            break;
+        default:
+            cout << "Image format: Unknown" << endl;
+            break;
     }
 }
 
@@ -156,7 +135,7 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
         // Image grabbed successfully?
         if (ptrGrabResult->GrabSucceeded())
         {
-            cout << "Grabbed image: " << imgPosition << endl;
+            cout << "Grabbed image: " << lastImageId << endl;
             cout << "Image buffer size: " << ptrGrabResult->GetBufferSize() << endl;
             
 			// Print the image format type
@@ -227,6 +206,56 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
         cerr << "An exception occurred." << endl
             << e.GetDescription() << endl;
         return nullptr;
+    }
+}
+
+ImageCaptureController::~ImageCaptureController()
+{
+    {
+        std::lock_guard<std::mutex> lock(stopMutex);
+        stopWorker = true;
+    }
+    stopCondition.notify_all();
+    workerThread.join();
+    //PylonTerminate();
+}
+
+void ImageCaptureController::processQueue()
+{
+    while (true)
+    {
+        RGBImage* rgbImage;
+        {
+            std::unique_lock<std::mutex> lock(stopMutex);
+            stopCondition.wait(lock, [this] { return stopWorker || !imageQueue.empty(); });
+            if (stopWorker && imageQueue.empty())
+            {
+                break;
+            }
+        }
+
+        if (imageQueue.pop(rgbImage))
+        {
+            cout << "Processing image " << rgbImage->getImageId() << endl;
+            if (rgbImage->isReadyToMerge())
+            {
+                OIIO::ImageBuf* mergedImage = ImagesProcessor::mergeRGBImages(rgbImage->getRedImage(), rgbImage->getGreenImage(), rgbImage->getBlueImage());
+                if (mergedImage != nullptr)
+                {
+                    ImagesProcessor::saveImage(mergedImage, "img/image" + rgbImage->getCaptureId() + "_" + to_string(rgbImage->getImageId()) + ".tiff");
+                    delete mergedImage;
+                }
+                else
+                {
+                    cout << "Error: Merged image is null." << endl;
+                }
+            }
+            else
+            {
+                cout << "Error: Not all images are ready to be merged." << endl;
+            }
+            delete rgbImage; // Don't forget to delete the RGBImage object
+        }
     }
 }
 
