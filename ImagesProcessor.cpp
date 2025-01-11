@@ -33,9 +33,9 @@ OIIO::ImageBuf* ImagesProcessor::mergeRGBImages(OIIO::ImageBuf* redChannel, OIIO
     }
 
     // Get pointers to the image data arrays
-    const void* redData = (const float*)redChannel->localpixels();
-    const void* greenData = (const float*)greenChannel->localpixels();
-    const void* blueData = (const float*)blueChannel->localpixels();
+    const void* redData = redChannel->localpixels();
+    const void* greenData = greenChannel->localpixels();
+    const void* blueData = blueChannel->localpixels();
     void * rgbData = (float*)rgbImage->localpixels();
 
     // // Iterate over each pixel and combine the channels
@@ -61,10 +61,10 @@ OIIO::ImageBuf* ImagesProcessor::mergeRGBImages(OIIO::ImageBuf* redChannel, OIIO
 
     // Merge the channels by copying the data directly based on the data type
     // NOTE: uint8 is used here as the image buffs are all 8bit images
-    const uint8_t* redData8 = static_cast<const uint8_t*>(redData);
-    const uint8_t* greenData8 = static_cast<const uint8_t*>(greenData);
-    const uint8_t* blueData8 = static_cast<const uint8_t*>(blueData);
-    uint8_t* rgbData8 = static_cast<uint8_t*>(rgbData);
+    const uint16_t* redData8 = static_cast<const uint16_t*>(redData);
+    const uint16_t* greenData8 = static_cast<const uint16_t*>(greenData);
+    const uint16_t* blueData8 = static_cast<const uint16_t*>(blueData);
+    uint16_t* rgbData8 = static_cast<uint16_t*>(rgbData);
 
     for (int y = 0; y < spec.height; ++y) {
         for (int x = 0; x < spec.width; ++x) {

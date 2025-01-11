@@ -12,6 +12,8 @@
 #ifdef PYLON_WIN_BUILD
 #    include <pylon/PylonGUI.h>
 #endif
+#include <pylon/PylonIncludes.h>
+#include <pylon/BaslerUniversalInstantCamera.h>
 #include <string>
 #include <thread>
 #include <atomic>
@@ -28,6 +30,7 @@ class ImageCaptureController
 	public:
 		enum ImageType { RED, GREEN, BLUE }; // Define the enum for image types
 		static void initializePylon(); // Static method to initialize Pylon
+		void initializeCamera();
 		ImageCaptureController(std::string id);
 		~ImageCaptureController();
 		int captureFrame(); // Will get all colors for 1 frame
@@ -36,6 +39,7 @@ class ImageCaptureController
 		void processQueue();
 
 		static bool pylonInitialized; // Static flag to check if Pylon is initialized
+
 		// This smart pointer will receive the grab result data.
 		CGrabResultPtr ptrGrabResult;
 		CInstantCamera camera;
@@ -43,7 +47,6 @@ class ImageCaptureController
 		OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer();
 
 		void manuallyStepThroughImage();
-		void printImageFormatType(CGrabResultPtr ptrGrabResult);
 
 		int lastImageId;
 		std::string captureId;

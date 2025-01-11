@@ -4,7 +4,7 @@
 *	kyle@kylem.org
 */
 
-#define REQUIRE_MANUAL_STEP false
+#define REQUIRE_MANUAL_STEP true
 
 #include "ImageCaptureController.h"
 
@@ -16,7 +16,7 @@ void ImageCaptureController::initializePylon()
     if (!pylonInitialized)
     {
         PylonInitialize();
-        pylonInitialized = true;
+        pylonInitialized = true;;
     }
 }
 
@@ -31,6 +31,38 @@ ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFacto
     
     // Start the worker thread
     workerThread = std::thread(&ImageCaptureController::processQueue, this);
+    initializeCamera();
+}
+
+void ImageCaptureController::initializeCamera()
+{
+    try
+    {
+        // Ensure the camera is open
+        if (!camera.IsOpen())
+        {
+            camera.Open();
+        }
+
+        // Set the pixel format to Mono16
+        GenApi::INodeMap& nodemap = camera.GetNodeMap();
+        GenApi::CEnumerationPtr pixelFormat(nodemap.GetNode("PixelFormat"));
+        if (IsAvailable(pixelFormat->GetEntryByName("Mono12")))
+        {
+            pixelFormat->FromString("Mono12");
+            cout << "Pixel format set to Mono12" << endl;
+        }
+        else
+        {
+            cout << "Mono12 pixel format not available" << endl;
+        }
+
+    }
+    catch (const GenericException& e)
+    {
+        cerr << "An exception occurred while initializing the camera." << endl
+            << e.GetDescription() << endl;
+    }
 }
 
 // Manually step through the image capture process
@@ -91,32 +123,6 @@ int ImageCaptureController::captureFrame()
     return 0;
 }
 
-void ImageCaptureController::printImageFormatType(CGrabResultPtr ptrGrabResult)
-{
-    // Get the pixel type of the image
-    EPixelType pixelType = ptrGrabResult->GetPixelType();
-
-    // Print the pixel type
-    switch (pixelType)
-    {
-        case PixelType_Mono8:
-        case PixelType_Mono10:
-        case PixelType_Mono12:
-        case PixelType_Mono16:
-            cout << "Image format: Monochrome, 1 channel" << endl;
-            break;
-        case PixelType_RGB8packed:
-        case PixelType_BGR8packed:
-        case PixelType_RGBA8packed:
-        case PixelType_BGRA8packed:
-            cout << "Image format: RGB" << endl;
-            break;
-        default:
-            cout << "Image format: Unknown" << endl;
-            break;
-    }
-}
-
 OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
 {
     OIIO::ImageBuf* image; // Image to return
@@ -137,11 +143,8 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
         {
             cout << "Grabbed image: " << lastImageId << endl;
             cout << "Image buffer size: " << ptrGrabResult->GetBufferSize() << endl;
-            
-			// Print the image format type
-			printImageFormatType(ptrGrabResult);
 
-            const uint8_t* pImageBuffer = (uint8_t*)ptrGrabResult->GetBuffer();
+            const uint16_t* pImageBuffer = (uint16_t*)ptrGrabResult->GetBuffer();
 
             // Get image specifications
             int width = ptrGrabResult->GetWidth();
@@ -150,21 +153,33 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
 			// Number of channels in the image
             int nchannels = 1; // Assumed monochrome
 
-            // Determine the data type based on the pixel type
-            OIIO::TypeDesc dataType = OIIO::TypeDesc::UINT8;
+            EPixelType pixelType = ptrGrabResult->GetPixelType();
 
-            // If its 16bit, set the type to 16bit
-            if (ptrGrabResult->GetPixelType() == PixelType_Mono16)
-            {
-                dataType = OIIO::TypeDesc::UINT16;
-            }
+            // Debugging information
+            cout << "Pixel type value: " << static_cast<int>(pixelType) << endl;
+            cout << "PixelType_Mono16 value: " << static_cast<int>(PixelType_Mono12) << endl;
+            cout << "Comparison result: " << (pixelType == PixelType_Mono12) << endl;
+
+
+            // Determine the data type based on the pixel type
+            OIIO::TypeDesc dataType = OIIO::TypeDesc::UINT16; // Cast to 16 because OIIO does not have 12bit
+            cout << "Data type is uint8" << endl;
+
 
             // Create an ImageSpec
             OIIO::ImageSpec spec(width, height, nchannels, dataType);
 
             // Create an ImageBuf from the raw image data
             image = new OIIO::ImageBuf(spec);
-			image->set_pixels(OIIO::ROI::All(), dataType, pImageBuffer);
+
+            // Scale the 12-bit data to the full 16-bit range
+            std::vector<uint16_t> scaledBuffer(width * height);
+            for (int i = 0; i < width * height; ++i)
+            {
+                scaledBuffer[i] = pImageBuffer[i] << 4; // Left shift by 4 bits to scale to 16-bit range
+            }
+
+            image->set_pixels(OIIO::ROI::All(), dataType, scaledBuffer.data());
 
             #ifdef PYLON_WIN_BUILD
             // Display the grabbed image.
