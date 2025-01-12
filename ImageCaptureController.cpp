@@ -26,18 +26,28 @@ void ImageCaptureController::initializePylon()
 /*
 * 
 */
-ImageCaptureController::ImageCaptureController(std::string id) : camera(CTlFactory::GetInstance().CreateFirstDevice()), captureId(id), stopWorker(false), lastImageId(0)
+ImageCaptureController::ImageCaptureController(std::string id) : captureId(id), stopWorker(false), lastImageId(0)
 {   
-    // Print the model name of the camera.
-    cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
+    try {
+        camera.Attach(CTlFactory::GetInstance().CreateFirstDevice());
 
-    // The parameter MaxNumBuffer can be used to control the count of buffers
-    // allocated for grabbing. The default value of this parameter is 10.
-    camera.MaxNumBuffer = 5;
-    
-    // Start the worker thread
-    workerThread = std::thread(&ImageCaptureController::processQueue, this);
-    initializeCamera();
+        // Print the model name of the camera.
+        cout << "Using device " << camera.GetDeviceInfo().GetModelName() << endl;
+
+        // The parameter MaxNumBuffer can be used to control the count of buffers
+        // allocated for grabbing. The default value of this parameter is 10.
+        camera.MaxNumBuffer = 5;
+
+        // Start the worker thread
+        workerThread = std::thread(&ImageCaptureController::processQueue, this);
+        initializeCamera();
+    }
+    catch (const GenericException& e)
+    {
+        cerr << "Pylon Camera was not found, please check the connection." << endl
+            << e.GetDescription() << endl;
+        std::exit(EXIT_FAILURE);
+    }
 }
 
 /*
@@ -185,8 +195,11 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
             image->set_pixels(OIIO::ROI::All(), dataType, scaledBuffer.data());
 
             #ifdef PYLON_WIN_BUILD
-            // Display the grabbed image.
-            Pylon::DisplayImage(1, ptrGrabResult);
+            // Create a window and set its size
+            Pylon::CPylonImageWindow window;
+            window.Create(0, 0, 1920, 1080);
+            window.SetImage(ptrGrabResult);
+            window.Show();
             #endif
         }
         else
