@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.props" Condition="Exists('packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.props')" />
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -81,6 +82,17 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ExternalIncludePath>D:\DTS\Kyle's DTS Decoder\boost_1_86_0;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>true</VcpkgEnabled>
+    <VcpkgEnableManifest>true</VcpkgEnableManifest>
+    <VcpkgManifestInstall>true</VcpkgManifestInstall>
+    <VcpkgAutoLink>true</VcpkgAutoLink>
+    <VcpkgApplocalDeps>true</VcpkgApplocalDeps>
+  </PropertyGroup>
+  <PropertyGroup Label="Vcpkg" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <VcpkgUseStatic>false</VcpkgUseStatic>
+    <VcpkgConfiguration>Debug</VcpkgConfiguration>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <Optimization>Disabled</Optimization>
@@ -109,7 +121,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>$(PYLON_DEV_DIR)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_WIN32_WINNT=0x0A00;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -118,6 +130,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
@@ -177,14 +190,31 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ImageCaptureController.cpp" />
+    <ClCompile Include="ImagesProcessor.cpp" />
+    <ClCompile Include="RGBImage.cpp" />
+    <ClCompile Include="RGBImageQueue.cpp" />
     <ClCompile Include="Scanner.cpp" />
     <ClCompile Include="SerialConn.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImageCaptureController.h" />
+    <ClInclude Include="ImagesProcessor.h" />
+    <ClInclude Include="RGBImage.h" />
+    <ClInclude Include="RGBImageQueue.h" />
     <ClInclude Include="SerialConn.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.targets" Condition="Exists('packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.props'))" />
+    <Error Condition="!Exists('packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.1.0.0\build\native\vcpkg.C.Users.kylem.scoop.apps.vcpkg.current.targets'))" />
+  </Target>
 </Project>

@@ -19,6 +19,15 @@
     <ClCompile Include="ImageCaptureController.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ImagesProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RGBImage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RGBImageQueue.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="SerialConn.h">
@@ -27,5 +36,17 @@
     <ClInclude Include="ImageCaptureController.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ImagesProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RGBImage.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RGBImageQueue.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
 </Project>
