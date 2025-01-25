@@ -54,5 +54,7 @@ class ImageCaptureController
 		void processQueue();
 		OIIO::ImageBuf* captureImageAsBuffer();
 		void manuallyStepThroughImage();
+
+		Pylon::CPylonImageWindow window;
 };
 

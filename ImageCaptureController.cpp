@@ -41,6 +41,9 @@ ImageCaptureController::ImageCaptureController(std::string id) : captureId(id), 
         // Start the worker thread
         workerThread = std::thread(&ImageCaptureController::processQueue, this);
         initializeCamera();
+
+        // Pre-allocate buffers and start grabbing
+        camera.StartGrabbing(GrabStrategy_OneByOne, GrabLoop_ProvidedByUser);
     }
     catch (const GenericException& e)
     {
@@ -85,6 +88,9 @@ void ImageCaptureController::initializeCamera()
         cerr << "An exception occurred while initializing the camera." << endl
             << e.GetDescription() << endl;
     }
+    // Create a window and set its size
+    window.Create(1);
+
 }
 
 /*
@@ -151,11 +157,11 @@ int ImageCaptureController::captureFrame()
 */
 OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
 {
-    OIIO::ImageBuf* image; // Image to return
+    OIIO::ImageBuf* image = nullptr; // Image to return
     try
     {
         // Wait for an image and then retrieve it. A timeout of 5000 ms is used.
-        camera.GrabOne(5000, ptrGrabResult, TimeoutHandling_ThrowException);
+        camera.RetrieveResult(5000, ptrGrabResult, TimeoutHandling_ThrowException);
 
         // Image grabbed successfully?
         if (ptrGrabResult->GrabSucceeded())
@@ -163,6 +169,8 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
             cout << "Grabbed image: " << lastImageId << endl;
             cout << "Image buffer size: " << ptrGrabResult->GetBufferSize() << endl;
 
+            // TODO: Offload all this image processing to the "display" function to the processing queue
+            // so that we do not bog down the main capture thread
             const uint16_t* pImageBuffer = (uint16_t*)ptrGrabResult->GetBuffer();
 
             // Get image specifications
@@ -195,9 +203,6 @@ OIIO::ImageBuf* ImageCaptureController::captureImageAsBuffer()
             image->set_pixels(OIIO::ROI::All(), dataType, scaledBuffer.data());
 
             #ifdef PYLON_WIN_BUILD
-            // Create a window and set its size
-            Pylon::CPylonImageWindow window;
-            window.Create(0, 0, 1920, 1080);
             window.SetImage(ptrGrabResult);
             window.Show();
             #endif
@@ -284,6 +289,10 @@ ImageCaptureController::~ImageCaptureController()
     }
     stopCondition.notify_all();
     workerThread.join();
+    if (camera.IsGrabbing())
+    {
+        camera.StopGrabbing();
+    }
     //PylonTerminate();
 }
 
