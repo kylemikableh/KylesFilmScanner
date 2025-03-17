@@ -191,6 +191,7 @@
   <ItemGroup>
     <ClCompile Include="ImageCaptureController.cpp" />
     <ClCompile Include="ImagesProcessor.cpp" />
+    <ClCompile Include="MDriveConn.cpp" />
     <ClCompile Include="RGBImage.cpp" />
     <ClCompile Include="RGBImageQueue.cpp" />
     <ClCompile Include="Scanner.cpp" />
@@ -199,6 +200,7 @@
   <ItemGroup>
     <ClInclude Include="ImageCaptureController.h" />
     <ClInclude Include="ImagesProcessor.h" />
+    <ClInclude Include="MDriveConn.h" />
     <ClInclude Include="RGBImage.h" />
     <ClInclude Include="RGBImageQueue.h" />
     <ClInclude Include="SerialConn.h" />
