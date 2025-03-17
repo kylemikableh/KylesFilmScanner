@@ -1,0 +1,22 @@
+
+'[PROGRAMS]
+  
+  PG 1
+  LB SS
+      S1 = 2, 1, 0
+      S2 = 3, 1, 0
+      S3 = 1, 1, 0
+      SL 128000^
+      H
+      P=0
+      MA -480000
+      H
+      HM 3
+      H 
+      PR "Homed at ", P
+      P = 0
+      PR "Homed OK. Ready.?"
+      E 
+  PG 
+
+'[END]

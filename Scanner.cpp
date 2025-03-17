@@ -4,17 +4,28 @@
 *   kyle@kylem.org
 */
 
-#define ARDUINO_BAUD_RATE 115200
-#define ARDUINO_PORT "COM6"
-#define ARDUINO_MSG_START_DELIM '('
-#define ARDUINO_MSG_END_DELIM ')'
+// #define ARDUINO
+#define MDRIVE
+
+#ifdef ARDUINO
+    #define ARDUINO_BAUD_RATE 115200
+    #define ARDUINO_PORT "COM6"
+    #define ARDUINO_MSG_START_DELIM '('
+    #define ARDUINO_MSG_END_DELIM ')'
+#endif
+
+#ifdef MDRIVE
+    #define MDRIVE_PORT "COM5"
+    #define MDRIVE_BAUD_RATE 9600
+#endif
 
 #include "SerialConn.h"
 #include "ImageCaptureController.h"
+#include "MDriveConn.h"
 
 #include <OpenImageIO/imagebuf.h>
 
-bool useCamera = true;
+bool useCamera = false;
 bool enableSerialComms = false;
 
 /*
@@ -33,6 +44,7 @@ ImageCaptureController* initializeImageController() {
 * If we have enabled the serial connection, initialize it.
 * If its not available, bail out
 */
+#ifdef ARDUINO
 SerialConn* getArudinoConnection() {
     SerialConn* arduinoConnection = nullptr;
     if (enableSerialComms) {
@@ -46,12 +58,22 @@ SerialConn* getArudinoConnection() {
     }
     return arduinoConnection;
 }
+#endif
 
 int main(int argc, char* argv[])
 {
     int exitCode = 0;
 
+#ifdef ARDUINO
     SerialConn* arduinoConnection = getArudinoConnection();
+#endif
+
+#ifdef MDRIVE
+	// Initialize the MDrive connection
+	MDriveConn* mDriveConnection = new MDriveConn(MDRIVE_PORT, MDRIVE_BAUD_RATE);
+	mDriveConnection->initializeAndHome();
+#endif
+	
 
     ImageCaptureController* imageCaptureController;
 
@@ -70,6 +92,8 @@ int main(int argc, char* argv[])
 
     int i = 0;
     while (enableSerialComms) {
+
+#ifdef ARDUINO
         if (i > 10) { break; }
         cout << "Sent command to set color to RED" << endl;
         // Test out sending command to arduino with pause
@@ -100,6 +124,7 @@ int main(int argc, char* argv[])
         else {
             cout << "No response recieved for try " << i << endl;
         }
+#endif
 
 		Sleep(25);
         i++;
