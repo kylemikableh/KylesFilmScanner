@@ -9,6 +9,7 @@
 #include <boost/asio.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/bind.hpp>
+#include <boost/asio/executor_work_guard.hpp>
 
 #define MSG_SIZE 256
 #define MSG_START_DELIM '('
@@ -76,12 +77,12 @@ class SerialConn
 		void sendCommand(Arduino_Command_Type command);
 		void sendCommand(Arduino_Command_Type command, int value);
 	private:
-		io_service io;
+		io_context io;
 		serial_port serial;
 
 		bool timed_out = false;
 
-		boost::asio::io_service::work work;
+		boost::asio::executor_work_guard<boost::asio::io_context::executor_type> work; // Updated from io_context::work
 		std::thread ioThread;
 		char readChar;
 		bool readComplete;

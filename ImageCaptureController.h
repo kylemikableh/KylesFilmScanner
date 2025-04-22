@@ -55,6 +55,9 @@ class ImageCaptureController
 		OIIO::ImageBuf* captureImageAsBuffer();
 		void manuallyStepThroughImage();
 
-		Pylon::CPylonImageWindow window;
+		#ifdef PYLON_WIN_BUILD
+		// Create a GUI window to display the image.
+			Pylon::CPylonImageWindow window;
+		#endif
 };
 

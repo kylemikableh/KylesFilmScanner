@@ -15,15 +15,27 @@
 #endif
 
 #ifdef MDRIVE
-    #define MDRIVE_PORT "COM5"
-    #define MDRIVE_BAUD_RATE 9600
+    #ifdef _WIN32
+        #define MDRIVE_PORT "COM5"
+        #define MDRIVE_BAUD_RATE 9600
+    #else
+        #define MDRIVE_PORT "porthere"
+        #define MDRIVE_BAUD_RATE 9600
+    #endif
 #endif
 
 #include "SerialConn.h"
 #include "ImageCaptureController.h"
 #include "MDriveConn.h"
-
 #include <OpenImageIO/imagebuf.h>
+#include <chrono>
+#include <thread>
+
+#ifdef _WIN32
+    #include <windows.h> // For Sleep on Windows
+#else
+    #include <unistd.h>  // For sleep on Unix-like systems
+#endif
 
 bool useCamera = false;
 bool enableSerialComms = false;
@@ -126,7 +138,11 @@ int main(int argc, char* argv[])
         }
 #endif
 
-		Sleep(25);
+#ifdef _WIN32
+        Sleep(25); // Sleep for 25 milliseconds on Windows
+#else
+        std::this_thread::sleep_for(std::chrono::milliseconds(25)); // Cross-platform alternative
+#endif
         i++;
     }
 

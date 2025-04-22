@@ -88,8 +88,10 @@ void ImageCaptureController::initializeCamera()
         cerr << "An exception occurred while initializing the camera." << endl
             << e.GetDescription() << endl;
     }
+    #ifdef PYLON_WIN_BUILD
     // Create a window and set its size
     window.Create(1);
+    #endif
 
 }
 

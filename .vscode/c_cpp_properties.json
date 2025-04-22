@@ -1,0 +1,24 @@
+
+   {
+       "configurations": [
+           {
+               "name": "Mac",
+               "includePath": [
+                   "${workspaceFolder}/**",
+                   "/Library/Frameworks/pylon.framework/Headers",
+                   "/Library/Frameworks/pylon.framework/Headers/GenICam",
+                   "/Users/kyle/c++/vcpkg/installed/arm64-osx/include"
+               ],
+               "defines": [],
+               "macFrameworkPath": [
+                   "/System/Library/Frameworks",
+                   "/Library/Frameworks"
+               ],
+               "compilerPath": "/usr/bin/clang",
+               "cStandard": "c17",
+               "cppStandard": "c++17",
+               "intelliSenseMode": "macos-clang-x64"
+           }
+       ],
+       "version": 4
+   }

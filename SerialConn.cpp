@@ -9,7 +9,8 @@
 /*
 * Constructor for the SerialConn class.
 */
-SerialConn::SerialConn(int baudRate, const char* portId) : io(), work(io), serial(io, portId)
+SerialConn::SerialConn(int baudRate, const char* portId) 
+    : io(), work(boost::asio::make_work_guard(io)), serial(io, portId) // Updated work initialization
 {
     try {
         serial.set_option(serial_port_base::baud_rate(baudRate));

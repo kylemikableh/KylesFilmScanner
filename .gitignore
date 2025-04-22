@@ -11,11 +11,13 @@
 *.sln.docstates
 *.tlog
 *.tiff
+.DS_Store
 
 [Dd]ebug_x64/
 vcpkg_installed/
 rgbsample/
 img/
+build/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
