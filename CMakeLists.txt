@@ -33,6 +33,16 @@ add_executable(Scanner
     RGBImage.cpp
     RGBImageQueue.cpp
     MDriveConn.cpp
+
+    # Add headers for easy access
+    SerialConn.h
+    ImageCaptureController.h
+    ImagesProcessor.h
+    RGBImage.h
+    RGBImageQueue.h
+    MDriveConn.h
+    
+    # Add any other source files here
 )
 
 # Include directories
